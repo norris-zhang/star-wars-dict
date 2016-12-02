@@ -3,6 +3,7 @@
 console.log('Loading function');
 
 var cache = require('./cache').cache;
+var swapi = require('swapi-node');
 
 
 /**
@@ -29,6 +30,20 @@ exports.handler = (event, context, callback) => {
         nameList.push("Yuyu");
     }
     cache.push('haha');
-    done(null, nameList);
-    
+    console.log("Norris: 111111");
+    /*swapi.getPerson(1, function(err, result){
+        console.log("Norris: 3333333" + result);
+        done(null, result);
+    });*/
+
+    swapi.getPerson(1).then(function (result) {
+        console.log(result);
+        done(null, result);
+    });
+    console.log("Norris: 2222222");
+    //done(null, nameList);
+    var now = new Date().getTime();
+    while (new Date().getTime() - now < 1000) {
+
+    }
 };
