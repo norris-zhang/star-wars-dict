@@ -1,15 +1,12 @@
 'use strict';
 
-console.log('Loading function');
-
 var swapi = require('swapi-node');
+var cache = require('./cache');
 
 /**
  * Get character info from Star Wars API, according to character names.
  */
 exports.handler = (event, context, callback) => {
-    //console.log("Norris: Received event:", JSON.stringify(event, null, 2));
-    console.log("begin....");
     const done = (err, res) => callback(null, {
         statusCode: err ? '400' : '200',
         body: err ? err.message : JSON.stringify(res),
@@ -19,6 +16,17 @@ exports.handler = (event, context, callback) => {
     });
 
     var name = event.queryStringParameters["name"];
+
+    /*
+     * If character name is in cache, return character info from cache.
+     * Otherwise, fetch character info from SWAPI, then put it into cache.
+     */
+    var cachedObject = cache.get(name);
+    if (cachedObject) {
+        done(null, cachedObject);
+        return;
+    }
+    console.log("visiting SWAPI...");
 
     swapi.get("http://swapi.co/api/people/?search=" + name).then(function (result) {
         if (result.count === 0) {
@@ -94,13 +102,10 @@ var processURL = function (url, callback) {
         }
         return character;
     }).then(function(result){
+        cache.push(result.name, result);
         callback(null, result);
     }).catch(function(reason){
         console.log("Handle rejection: " + JSON.stringify(reason, null, 2));
         callback(reason, null);
     });
 }
-
-module.exports.handler({queryStringParameters: {name: "r5"}}, null, (err, result) => {
-    console.log("Norris: " + JSON.stringify(result, null, 2));
-});
