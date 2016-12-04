@@ -20,3 +20,12 @@ exports.push = function (key, value) {
     console.log("push to cache key = " + key + ", value = " + JSON.stringify(value, null, 2));
     namecache[key] = {timestamp: new Date().getTime(), data: value};
 }
+exports.clear = function () {
+    namecache = {};
+}
+exports.expire = function (key) {
+    var cacheValue = namecache[key];
+    if (cacheValue) {
+        cacheValue.timestamp = new Date().getTime() - cacheExpiry - 1 * 60 * 60 * 1000;
+    }
+}
