@@ -29,17 +29,25 @@ exports.handler = (event, context, callback) => {
     console.log("visiting SWAPI...");
 
     swapi.get("http://swapi.co/api/people/?search=" + name).then(function (result) {
+        // search result is multiple, required output is single.
         if (result.count === 0) {
             done(null, {});
         } else {
             var charURL = getSingleCharacterURL(name, result.results);
             processURL(charURL, done);
         }
-    }).catch(function(reason){
+    }).catch(function(reason){ // handle exception.
         console.log("Handle rejection: " + JSON.stringify(reason, null, 2));
         done(reason, null);
     });
 };
+
+/**
+ * SWAPI search result returns a set of people.
+ * To pick a single person, the rule is:
+ * if the person name is exactly the same as given, select it,
+ * otherwise, pick the first record.
+ */
 var getSingleCharacterURL = function (name, results) {
     if (results.length == 1) {
         return results[0].url;
@@ -52,7 +60,14 @@ var getSingleCharacterURL = function (name, results) {
     }
     return url;
 }
+
+/**
+ * arg url is a character url.
+ * visit SWAPI with this url and fill the dest object as required format.
+ * Deeper information is fetched.
+ */
 var processURL = function (url, callback) {
+    // object skeleton to be returned.
     var character = {
         birth_year: "",
         eye_color: "",
@@ -64,9 +79,13 @@ var processURL = function (url, callback) {
         skin_color: "",
         species: [],
         starships: [],
-        vehicles: [] // TODO
+        vehicles: []
     };
+
+    // store the character result temporarily,
+    // used to fetch deeper information.
     var tempResult = null;
+
     swapi.get(url).then(function (result) {
         tempResult = result;
         character.birth_year = result.birth_year;
@@ -77,34 +96,34 @@ var processURL = function (url, callback) {
         character.skin_color = result.skin_color;
 
         return result.getHomeworld();
-    }).then(function(hw) {
+    }).then(function(hw) { // get homeworld information
         character.homeworld = hw.name;
         return tempResult.getFilms();
-    }).then(function (films) {
+    }).then(function (films) { // get films information
         for (var i = 0; i < films.length; i++) {
             character.films.push(films[i].title);
         }
         
         return tempResult.getSpecies();
-    }).then(function (species) {
+    }).then(function (species) { // get species information
         for (var i = 0; i < species.length; i++) {
             character.species.push(species[i].name);
         }
         return tempResult.getStarships();
-    }).then(function(starships){
+    }).then(function(starships){ // get starships information
         for (var i = 0; i < starships.length; i++) {
             character.starships.push(starships[i].name);
         }
         return tempResult.getVehicles();
-    }).then(function(vehicles) {
+    }).then(function(vehicles) { // get vehicles information
         for (var i = 0; i < vehicles.length; i++) {
             character.vehicles.push(vehicles[i].name);
         }
         return character;
-    }).then(function(result){
+    }).then(function(result){ // push into cache before returning.
         cache.push(result.name, result);
         callback(null, result);
-    }).catch(function(reason){
+    }).catch(function(reason){ // handle exception.
         console.log("Handle rejection: " + JSON.stringify(reason, null, 2));
         callback(reason, null);
     });
